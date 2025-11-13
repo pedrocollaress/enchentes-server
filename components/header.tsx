@@ -8,13 +8,14 @@ export function Header() {
   const pathname = usePathname();
 
   const getBreadcrumbs = () => {
+    console.log("pathname", pathname);
     if (pathname === "/") {
       return [{ label: "Dashboard", href: "/" }];
     }
-    if (pathname === "/relatorios") {
+    if (pathname === "/reports") {
       return [
         { label: "Dashboard", href: "/" },
-        { label: "Relatórios", href: "/relatorios" },
+        { label: "Relatórios", href: "/reports" },
       ];
     }
     return [{ label: "Dashboard", href: "/" }];
@@ -31,7 +32,9 @@ export function Header() {
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             )}
             {index === breadcrumbs.length - 1 ? (
-              <span className="font-medium text-foreground">{crumb.label}</span>
+              <span className="font-medium text-muted-foreground">
+                {crumb.label}
+              </span>
             ) : (
               <Link
                 href={crumb.href}

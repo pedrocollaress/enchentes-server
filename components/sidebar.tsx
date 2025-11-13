@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, FileText } from "lucide-react";
-import { cn } from "@/lib/utils";
+// Update the import path if necessary, for example:
+import { cn } from "../lib/utils";
+// Or provide the correct relative path to your utils file
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -15,7 +17,7 @@ export function Sidebar() {
       icon: LayoutDashboard,
     },
     {
-      href: "/relatorios",
+      href: "/reports",
       label: "Relatórios",
       icon: FileText,
     },
