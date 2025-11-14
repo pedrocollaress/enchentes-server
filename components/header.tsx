@@ -8,7 +8,6 @@ export function Header() {
   const pathname = usePathname();
 
   const getBreadcrumbs = () => {
-    console.log("pathname", pathname);
     if (pathname === "/") {
       return [{ label: "Dashboard", href: "/" }];
     }
