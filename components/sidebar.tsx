@@ -28,7 +28,7 @@ export function Sidebar() {
       <div className="flex h-full flex-col">
         {/* Logo/Brand */}
         <div className="flex h-16 items-center border-b border-border px-6">
-          <h1 className="text-xl font-bold text-primary">App</h1>
+          <h1 className="text-xl font-bold text-primary">Flood Monitor</h1>
         </div>
 
         {/* Navigation */}
