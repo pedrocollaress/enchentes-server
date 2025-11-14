@@ -23,7 +23,7 @@ export function Header() {
   const breadcrumbs = getBreadcrumbs();
 
   return (
-    <header className="sticky top-0 z-30 border-b border-border bg-white px-6 py-4">
+    <header className="sticky flex items-center h-16 top-0 z-30 border-b border-border bg-white px-6 py-4">
       <nav className="flex items-center gap-2 text-sm">
         {breadcrumbs.map((crumb, index) => (
           <div key={crumb.href} className="flex items-center gap-2">
