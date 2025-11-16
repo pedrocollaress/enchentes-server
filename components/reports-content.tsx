@@ -2,17 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Clock, AlertTriangle } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton"; // Para o loading
+import { Button } from "../components/ui/button";
+import { Clock, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
-// Interface para um único pulso (vinda do seu redis.ts)
+// Interface para um único pulso
 interface Pulse {
   sensor: boolean;
   receivedAt: number;
   humanTime: string;
 }
 
-// Interface para a resposta da sua API (vinda do seu route.js)
+// Interface para a resposta da API
 interface ApiResponse {
   message: string;
   pulses: Pulse[];
@@ -23,21 +24,22 @@ export function ReportsContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Estados para paginação
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
+
   /**
    * Busca os dados da API /api/pulse
    */
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      // Faz o GET para a sua rota (que já busca TODOS os pulsos)
       const res = await fetch("/api/pulse");
       if (!res.ok) {
         throw new Error(`Falha ao buscar dados da API: ${res.statusText}`);
       }
 
       const data: ApiResponse = await res.json();
-
-      // A API já retorna os pulsos ordenados (mais novo primeiro)
       setPulses(data.pulses);
       setError(null);
     } catch (err) {
@@ -50,17 +52,12 @@ export function ReportsContent() {
     }
   };
 
-  // Efeito para buscar dados apenas UMA VEZ quando o componente carregar
   useEffect(() => {
     fetchData();
-  }, []); // O array vazio [] garante que isso rode apenas uma vez (no mount)
-
-  // --- Funções Corrigidas de Formatação de Data ---
-  // (O v0 estava aplicando o offset -3h manualmente, o que é um bug)
+  }, []);
 
   /**
    * Formata a string ISO UTC para uma string de log em Horário de Brasília
-   * Ex: "Pulso registrado às 14:32:05"
    */
   const formatLogMessage = (isoTime: string) => {
     const date = new Date(isoTime);
@@ -75,7 +72,6 @@ export function ReportsContent() {
 
   /**
    * Formata a string ISO UTC para Data e Hora de Brasília
-   * Ex: "16/11/2025, 14:32"
    */
   const formatDateTime = (isoTime: string) => {
     const date = new Date(isoTime);
@@ -89,9 +85,26 @@ export function ReportsContent() {
     });
   };
 
-  // --- Estados da UI ---
+  // Cálculos de paginação
+  const totalPages = Math.ceil(pulses.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const currentPulses = pulses.slice(startIndex, endIndex);
 
-  // 1. Estado de Erro
+  // Funções de navegação
+  const goToNextPage = () => {
+    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+  };
+
+  const goToPreviousPage = () => {
+    setCurrentPage((prev) => Math.max(prev - 1, 1));
+  };
+
+  const goToPage = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // Estado de Erro
   if (error) {
     return (
       <div className="flex-1 space-y-6 p-8">
@@ -115,7 +128,6 @@ export function ReportsContent() {
     );
   }
 
-  // 2. Estado de Sucesso (com ou sem dados)
   return (
     <div className="flex-1 space-y-6 p-8">
       <Card>
@@ -137,10 +149,9 @@ export function ReportsContent() {
               </span>
             </div>
 
-            {/* Logs - Estado de Carregamento */}
+            {/* Estado de Carregamento */}
             {isLoading && (
               <div className="space-y-3 pt-3">
-                {/* Gera 5 linhas de "esqueleto" */}
                 {[...Array(5)].map((_, i) => (
                   <div
                     key={i}
@@ -153,31 +164,78 @@ export function ReportsContent() {
               </div>
             )}
 
-            {/* Logs - Estado "Sem Dados" */}
+            {/* Estado "Sem Dados" */}
             {!isLoading && pulses.length === 0 && (
               <div className="py-8 text-center text-sm text-muted-foreground">
                 Nenhum pulso registrado
               </div>
             )}
 
-            {/* Logs - Estado de Sucesso (com dados) */}
+            {/* Lista de Pulsos Paginados */}
             {!isLoading &&
-              pulses.map((pulse) => (
+              currentPulses.map((pulse) => (
                 <div
-                  key={pulse.receivedAt} // Usa o timestamp como chave única
+                  key={pulse.receivedAt}
                   className="flex items-center justify-between border-b py-3 hover:bg-muted/50 transition-colors"
                 >
                   <span className="text-sm text-muted-foreground">
-                    {/* Usa a nova função de formatação */}
                     {formatLogMessage(pulse.humanTime)}
                   </span>
                   <span className="text-sm text-muted-foreground tabular-nums">
-                    {/* Usa a nova função de formatação */}
                     {formatDateTime(pulse.humanTime)}
                   </span>
                 </div>
               ))}
           </div>
+
+          {/* Controles de Paginação */}
+          {!isLoading && pulses.length > 0 && (
+            <div className="flex items-center justify-between mt-6 pt-4 border-t">
+              <div className="text-sm text-muted-foreground">
+                Mostrando {startIndex + 1} a {Math.min(endIndex, pulses.length)}{" "}
+                de {pulses.length} registros
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToPreviousPage}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Anterior
+                </Button>
+
+                {/* Números das páginas */}
+                <div className="flex gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                    (page) => (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => goToPage(page)}
+                        className="w-9"
+                      >
+                        {page}
+                      </Button>
+                    )
+                  )}
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToNextPage}
+                  disabled={currentPage === totalPages}
+                >
+                  Próxima
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
