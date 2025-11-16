@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "../components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Clock, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -208,20 +208,105 @@ export function ReportsContent() {
                 </Button>
 
                 {/* Números das páginas */}
-                <div className="flex gap-1">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                    (page) => (
-                      <Button
-                        key={page}
-                        variant={currentPage === page ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => goToPage(page)}
-                        className="w-9"
-                      >
-                        {page}
-                      </Button>
-                    )
-                  )}
+                <div className="flex gap-1 items-center">
+                  {(() => {
+                    const pages = [];
+                    const showEllipsis = totalPages > 5;
+
+                    if (!showEllipsis) {
+                      // Se tiver 5 páginas ou menos, mostra todas
+                      for (let i = 1; i <= totalPages; i++) {
+                        pages.push(
+                          <Button
+                            key={i}
+                            variant={currentPage === i ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => goToPage(i)}
+                            className="w-9"
+                          >
+                            {i}
+                          </Button>
+                        );
+                      }
+                    } else {
+                      // Sempre mostra a primeira página
+                      pages.push(
+                        <Button
+                          key={1}
+                          variant={currentPage === 1 ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => goToPage(1)}
+                          className="w-9"
+                        >
+                          1
+                        </Button>
+                      );
+
+                      // Se a página atual for maior que 3, mostra reticências
+                      if (currentPage > 3) {
+                        pages.push(
+                          <span
+                            key="ellipsis-start"
+                            className="px-2 text-muted-foreground"
+                          >
+                            ...
+                          </span>
+                        );
+                      }
+
+                      // Mostra páginas ao redor da página atual
+                      const startPage = Math.max(2, currentPage - 1);
+                      const endPage = Math.min(totalPages - 1, currentPage + 1);
+
+                      for (let i = startPage; i <= endPage; i++) {
+                        // Não mostra se for a primeira ou última página (já mostradas)
+                        if (i !== 1 && i !== totalPages) {
+                          pages.push(
+                            <Button
+                              key={i}
+                              variant={
+                                currentPage === i ? "default" : "outline"
+                              }
+                              size="sm"
+                              onClick={() => goToPage(i)}
+                              className="w-9"
+                            >
+                              {i}
+                            </Button>
+                          );
+                        }
+                      }
+
+                      // Se a página atual estiver longe do final, mostra reticências
+                      if (currentPage < totalPages - 2) {
+                        pages.push(
+                          <span
+                            key="ellipsis-end"
+                            className="px-2 text-muted-foreground"
+                          >
+                            ...
+                          </span>
+                        );
+                      }
+
+                      // Sempre mostra a última página
+                      pages.push(
+                        <Button
+                          key={totalPages}
+                          variant={
+                            currentPage === totalPages ? "default" : "outline"
+                          }
+                          size="sm"
+                          onClick={() => goToPage(totalPages)}
+                          className="w-9"
+                        >
+                          {totalPages}
+                        </Button>
+                      );
+                    }
+
+                    return pages;
+                  })()}
                 </div>
 
                 <Button
