@@ -312,7 +312,7 @@ export function MainContent() {
           <CardTitle>Ocorrências de Pulsos ao Longo do Dia</CardTitle>
           <CardDescription>
             Visualização das ocorrências das 00:00 às 23:59 de hoje (Horário de
-            Brasília) • Atualiza automaticamente a cada 10s
+            Brasília)
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-4">
