@@ -35,8 +35,8 @@ export async function sendEmailAlert() {
                 <!-- Header com faixa de alerta -->
                 <tr>
                   <td style="background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%); padding: 30px 40px; text-align: center;">
-                    <div style="background-color: rgba(255, 255, 255, 0.2); border-radius: 50%; width: 80px; height: 80px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
-                      <span style="font-size: 48px;">⚠️</span>
+                    <div style="background-color: rgba(255, 255, 255, 0.2); border-radius: 50%; width: 80px; height: 80px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; line-height: 1;">
+                      <span style="font-size: 48px; display: block; line-height: 1; margin: 0; padding: 0;">⚠️</span>
                     </div>
                     <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">
                       Alerta de Enchente
