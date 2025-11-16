@@ -189,7 +189,6 @@ export function MainContent() {
     );
   }
 
-  // Estado de Erro
   if (error) {
     return (
       <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center p-8">
@@ -375,7 +374,7 @@ export function MainContent() {
                 />
                 <Bar
                   dataKey="occurrences"
-                  fill="hsl(var(--primary))"
+                  fill="oklch(0.72 0.233 29.06)"
                   radius={[4, 4, 0, 0]}
                   barSize={20}
                 />
