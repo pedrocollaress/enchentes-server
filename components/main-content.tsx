@@ -307,12 +307,11 @@ export function MainContent() {
         </Card>
       </div>
 
-      <Card className="col-span-full">
+      <Card className="w-full">
         <CardHeader>
           <CardTitle>Ocorrências de Pulsos ao Longo do Dia</CardTitle>
           <CardDescription>
-            Visualização das ocorrências das 00:00 às 23:59 de hoje (Horário de
-            Brasília)
+            Visualização das ocorrências das 00:00 às 23:59 de hoje
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-4">
@@ -323,7 +322,7 @@ export function MainContent() {
                 color: "hsl(var(--chart-1))",
               },
             }}
-            className="h-[400px]"
+            className="h-[400px] w-full"
           >
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
