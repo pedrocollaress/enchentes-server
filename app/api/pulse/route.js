@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { savePulseToDB, getLatestPulses } from "@/app/service/redis";
 
 /**
  * @route POST /api/pulse
@@ -6,31 +7,28 @@ import { NextResponse } from "next/server";
  */
 export async function POST(req) {
   try {
-    // 1. Parse o JSON enviado pelo NodeMCU
-    // O Next.js já faz o parse automático do body
     const body = await req.json();
 
-    // 2. Log o que foi recebido (você verá isso nos logs da Vercel)
-    console.log("[PULSE API] Pulso recebido:", body);
-
-    // 3. Verifique o payload (opcional, mas bom)
-    // Nota: O NodeMCU enviou "true" como string, não como booleano
-    if (body.sensor === "true" && body.timestamp) {
-      // Converte o timestamp (que é uptime em ms) para algo legível no log
-      const uptimeMs = body.timestamp;
+    if (body.sensor === "true") {
       console.log(
-        `[PULSE API] Sensor ativado. Uptime do dispositivo: ${uptimeMs} ms`
+        "[PULSE API] Payload valido. Tentando salvar no banco de dados..."
       );
 
-      // --- É AQUI QUE VOCÊ FAZ A MÁGICA ---
-      // 1. Salve no seu banco de dados (Vercel KV, Supabase, MongoDB...)
-      //    ex: await kv.set(`pulse:${Date.now()}`, body);
-      //
-      // 2. Envie uma notificação via WebSocket para os clientes (browsers)
-      //    (usando um serviço como Pusher, Ably, ou seu próprio server)
-      //
-      // 3. Dispare um alerta (Pushover, Email, etc.)
-      // ------------------------------------
+      const dbResult = await savePulseToDB(true);
+
+      if (!dbResult.success) {
+        console.error("[PULSE API] Falha ao salvar no DB:", dbResult.error);
+        return NextResponse.json(
+          { error: "Falha ao salvar no banco de dados" },
+          { status: 500 }
+        );
+      }
+
+      console.log("[PULSE API] Pulso salvo com sucesso.");
+      return NextResponse.json(
+        { message: "Pulso recebido e salvo!" },
+        { status: 200 }
+      );
     } else {
       // Se o JSON veio mal formatado
       console.warn(
@@ -39,13 +37,6 @@ export async function POST(req) {
       );
       return NextResponse.json({ error: "Payload invalido" }, { status: 400 });
     }
-
-    // 4. Responda ao NodeMCU que deu tudo certo
-    // O NodeMCU verá "Código 200" no Serial Monitor
-    return NextResponse.json(
-      { message: "Pulso recebido com sucesso!", data: body },
-      { status: 200 }
-    );
   } catch (error) {
     // Se o req.json() falhar (ex: corpo vazio ou não-JSON)
     console.error("[PULSE API] Erro ao processar o request:", error);
@@ -61,9 +52,23 @@ export async function POST(req) {
  * @desc Apenas para testar se a rota está no ar pelo navegador
  */
 export async function GET() {
-  // Retorna uma mensagem simples para quem acessar a URL no browser
-  return NextResponse.json(
-    { message: "API de pulso esta no ar. Use POST para enviar dados." },
-    { status: 200 }
-  );
+  try {
+    // MUDANÇA 3: Ele chama o serviço para buscar os 10 últimos pulsos
+    const pulses = await getLatestPulses(10);
+
+    return NextResponse.json(
+      {
+        message: "Mostrando os 10 últimos pulsos recebidos.",
+        pulses: pulses,
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("[PULSE API] Erro ao buscar pulsos:", error);
+    return NextResponse.json(
+      { error: "Erro ao buscar pulsos", details: error.message },
+      { status: 500 }
+    );
+    // ...
+  }
 }
