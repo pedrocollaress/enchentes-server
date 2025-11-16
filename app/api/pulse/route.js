@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { savePulseToDB, getLatestPulses } from "@/app/service/redis";
+import { sendEmailAlert } from "@/app/service/email";
 
 /**
  * @route POST /api/pulse
@@ -14,6 +15,7 @@ export async function POST(req) {
         "[PULSE API] Payload valido. Tentando salvar no banco de dados..."
       );
 
+      sendEmailAlert();
       const dbResult = await savePulseToDB(true);
 
       if (!dbResult.success) {
@@ -30,7 +32,6 @@ export async function POST(req) {
         { status: 200 }
       );
     } else {
-      // Se o JSON veio mal formatado
       console.warn(
         "[PULSE API] Payload recebido, mas formato inesperado:",
         body
@@ -38,7 +39,6 @@ export async function POST(req) {
       return NextResponse.json({ error: "Payload invalido" }, { status: 400 });
     }
   } catch (error) {
-    // Se o req.json() falhar (ex: corpo vazio ou não-JSON)
     console.error("[PULSE API] Erro ao processar o request:", error);
     return NextResponse.json(
       { error: "Erro no servidor", details: error.message },
@@ -53,7 +53,6 @@ export async function POST(req) {
  */
 export async function GET() {
   try {
-    // MUDANÇA 3: Ele chama o serviço para buscar os 10 últimos pulsos
     const pulses = await getLatestPulses(10);
 
     return NextResponse.json(
@@ -69,6 +68,5 @@ export async function GET() {
       { error: "Erro ao buscar pulsos", details: error.message },
       { status: 500 }
     );
-    // ...
   }
 }
