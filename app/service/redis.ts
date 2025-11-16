@@ -1,41 +1,55 @@
-import { kv } from "@vercel/kv"; // Importa o cliente oficial do Vercel KV
+import { createClient } from "redis";
 
+// A conexão está correta
+const redisClient = createClient({
+  url: process.env.REDIS_URL,
+});
+
+let isConnected = false;
+
+async function connectToRedis() {
+  if (isConnected) {
+    return;
+  }
+  try {
+    await redisClient.connect();
+    isConnected = true;
+    console.log("[Redis Service] Conectado ao Vercel Redis (via 'redis').");
+  } catch (err) {
+    console.error("[Redis Service] FALHA AO CONECTAR no Redis:", err);
+    isConnected = false;
+  }
+}
+
+// Interface (correta)
 interface PulseData {
   sensor: boolean;
   receivedAt: number;
   humanTime: string;
 }
 
-/**
- * Salva um registro de pulso no Vercel KV (Redis).
- * Os dados são salvos em um "Sorted Set" (conjunto ordenado) chamado 'pulses:log'
- *
- * @param {boolean} sensorStatus - O status do sensor (true)
- * @returns {Promise<{success: boolean, error?: string}>} - Retorna se a operação foi bem-sucedida
- */
+// savePulseToDB (está correto, sem mudanças)
 export async function savePulseToDB(sensorStatus: boolean) {
   try {
-    const receivedAt = Date.now();
+    await connectToRedis();
 
+    const receivedAt = Date.now();
     const pulseData: PulseData = {
       sensor: sensorStatus,
       receivedAt: receivedAt,
-      humanTime: new Date(receivedAt).toISOString(), // Formato legível
+      humanTime: new Date(receivedAt).toISOString(),
     };
-
     const dataString = JSON.stringify(pulseData);
 
-    // 4. Salva no Vercel KV
-    // Usamos 'zadd' (Sorted Set) para manter os logs ordenados pelo timestamp
-    // O 'score' é o timestamp, usado para ordenação
-    // O 'member' é o dado em si
-    await kv.zadd("pulses:log", { score: receivedAt, member: dataString });
+    await redisClient.zAdd("pulses:log", {
+      score: receivedAt,
+      value: dataString,
+    });
 
-    console.log("[Redis Service] Pulso salvo com sucesso no KV.");
+    console.log("[Redis Service] Pulso salvo com sucesso (via 'redis').");
     return { success: true };
   } catch (error) {
-    console.error("[Redis Service] Erro ao salvar no Vercel KV:", error);
-    // Garante que 'error' seja uma string
+    console.error("[Redis Service] Erro ao salvar no Redis:", error);
     const errorMessage = error instanceof Error ? error.message : String(error);
     return { success: false, error: errorMessage };
   }
@@ -43,20 +57,38 @@ export async function savePulseToDB(sensorStatus: boolean) {
 
 /**
  * (Bônus) Função para buscar os últimos pulsos salvos
- * Seu GET em route.js pode usar isso.
+ * (A assinatura da função é a mesma, seu route.js não precisa mudar)
  *
  * @param {number} count - Quantidade de pulsos para buscar
- * @returns {Promise<PulseData[]>} - Uma lista dos últimos pulsos
+ * @returns {Promise<PulseData[]>}
  */
 export async function getLatestPulses(count = 10): Promise<PulseData[]> {
   try {
-    // Busca os últimos 'count' items (os de maior score)
-    // 'rev: true' significa ordem reversa (do maior para o menor score)
-    const rawPulses = await kv.zrange("pulses:log", -count, -1, { rev: true });
+    await connectToRedis();
 
-    // Parseia os membros (que são strings JSON) de volta para objetos
-    const pulses = rawPulses.map((member) => JSON.parse(member as string));
-    return pulses;
+    // --- CORREÇÃO 1: Tipamos a declaração (como você sugeriu) ---
+    // Dizemos ao TypeScript: "Confie em nós, isso vai ser um array de strings ou nulo"
+    const rawPulses = (await redisClient.zRevRange(
+      "pulses:log",
+      0,
+      count - 1
+    )) as string[] | null;
+
+    // --- CORREÇÃO 2: Verificação de Nulo/Vazio ---
+    // Esta verificação agora funciona, pois o TS sabe que rawPulses
+    // (se não for nulo) é um array e, portanto, TEM a propriedade .length.
+    if (!rawPulses || rawPulses.length === 0) {
+      console.log("[Redis Service] Nenhum pulso encontrado em 'pulses:log'.");
+      return []; // Retorna um array vazio com segurança
+    }
+
+    // --- CORREÇÃO 3: 'map' ---
+    // Como o TS agora sabe que rawPulses é string[],
+    // ele infere automaticamente 'member' como 'string'.
+    // O erro "implicitly has an 'any' type" desaparece.
+    const pulses = rawPulses.map((member) => JSON.parse(member));
+
+    return pulses; // Já vem na ordem correta (mais novo primeiro)
   } catch (error) {
     console.error("[Redis Service] Erro ao buscar pulsos:", error);
     return [];
