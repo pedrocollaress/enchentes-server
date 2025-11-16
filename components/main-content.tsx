@@ -41,7 +41,7 @@ export function MainContent() {
   const [pulses, setPulses] = useState<Pulse[]>([]);
   const [isFloodDanger, setIsFloodDanger] = useState(false);
   const [lastPulseTime, setLastPulseTime] = useState<Date | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isInitialLoading, setIsInitialLoading] = useState(true); // Apenas primeira carga
   const [error, setError] = useState<string | null>(null);
 
   /**
@@ -55,53 +55,42 @@ export function MainContent() {
       }
 
       const data: ApiResponse = await res.json();
-
       setPulses(data.pulses);
 
-      // Lógica de status (baseada nos dados reais)
       if (data.pulses.length > 0) {
-        // Pega o pulso mais recente (a API já retorna ordenado)
         const mostRecentPulse = new Date(data.pulses[0].humanTime);
         setLastPulseTime(mostRecentPulse);
 
-        // Compara o tempo UTC do pulso com o tempo UTC de agora
         const now = new Date();
         const diffInMinutes =
           (now.getTime() - mostRecentPulse.getTime()) / (1000 * 60);
 
-        // Se o último pulso foi nos últimos 60 minutos, estamos em perigo
         setIsFloodDanger(diffInMinutes <= 60);
       } else {
-        // Se não há pulsos, estamos seguros
         setLastPulseTime(null);
         setIsFloodDanger(false);
       }
 
-      setError(null); // Limpa erros anteriores se a busca for bem-sucedida
+      setError(null);
     } catch (err) {
       console.error(err);
       setError(
         err instanceof Error ? err.message : "Um erro desconhecido ocorreu"
       );
     } finally {
-      setIsLoading(false); // Termina o carregamento (seja com sucesso ou erro)
+      setIsInitialLoading(false); // Só desliga após primeira carga
     }
   };
 
-  // Efeito para buscar dados no mount e configurar um "poll" (busca periódica)
   useEffect(() => {
-    fetchData(); // Busca os dados imediatamente
+    fetchData(); // Busca imediatamente
 
-    // Configura um intervalo para buscar os dados a cada 10 segundos
-    const intervalId = setInterval(fetchData, 10000); // 10000ms = 10 segundos
+    // Atualiza automaticamente a cada 5 segundos
+    const intervalId = setInterval(fetchData, 5000);
 
-    // Função de "limpeza" do React: cancela o intervalo se o componente for "desmontado"
     return () => clearInterval(intervalId);
-  }, []); // O array vazio [] garante que isso rode apenas uma vez (no mount)
+  }, []);
 
-  /**
-   * Processa os pulsos para o formato do gráfico (24h)
-   */
   const chartData = (() => {
     const today = new Date();
     const fullDayData: Array<{
@@ -111,7 +100,6 @@ export function MainContent() {
       hasData: boolean;
     }> = [];
 
-    // 1. Cria 24 pontos (um para cada hora do dia)
     for (let hour = 0; hour < 24; hour++) {
       const timePoint = new Date(
         today.getFullYear(),
@@ -133,11 +121,8 @@ export function MainContent() {
       });
     }
 
-    // 2. Mapeia os pulsos para os pontos de hora correspondentes (Horário de Brasília)
     pulses.forEach((pulse) => {
       const date = new Date(pulse.humanTime);
-
-      // Converte a data UTC para o fuso de Brasília (BRT/AMT)
       const brtDate = new Date(
         date.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" })
       );
@@ -157,20 +142,15 @@ export function MainContent() {
     return fullDayData;
   })();
 
-  // CORREÇÃO: Calcula o total de ocorrências de HOJE (não o total dos 10 últimos)
   const totalOccurrences = chartData.reduce(
     (acc, curr) => acc + curr.occurrences,
     0
   );
 
-  // --- Estados da UI ---
-
-  // 1. Estado de Carregamento (Loading)
-  // Mostra "esqueletos" (skeletons) na primeira carga
-  if (isLoading && pulses.length === 0) {
+  // Estado de Carregamento INICIAL (só primeira vez)
+  if (isInitialLoading) {
     return (
       <div className="flex-1 space-y-6 p-8">
-        {/* Skeleton loaders para os cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <Card>
             <CardHeader>
@@ -200,7 +180,6 @@ export function MainContent() {
             </CardContent>
           </Card>
         </div>
-        {/* Skeleton para o gráfico */}
         <Card className="col-span-full">
           <CardHeader>
             <Skeleton className="h-6 w-1/3" />
@@ -214,7 +193,7 @@ export function MainContent() {
     );
   }
 
-  // 2. Estado de Erro
+  // Estado de Erro
   if (error) {
     return (
       <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center p-8">
@@ -238,8 +217,8 @@ export function MainContent() {
     );
   }
 
-  // 3. Estado de "Sem Dados" (depois de carregar)
-  if (!isLoading && pulses.length === 0) {
+  // Estado de "Sem Dados"
+  if (pulses.length === 0) {
     return (
       <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center p-8">
         <Card className="w-full max-w-md">
@@ -251,16 +230,18 @@ export function MainContent() {
             <p className="text-muted-foreground">
               Ainda não recebemos nenhum pulso do sensor. Aguardando dados...
             </p>
+            <p className="text-xs text-muted-foreground mt-2">
+              Verificando automaticamente a cada 10 segundos...
+            </p>
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  // 4. Estado de Sucesso (Dashboard Principal)
+  // Dashboard Principal (agora atualiza automaticamente!)
   return (
     <div className="flex-1 space-y-6 p-8">
-      {/* Cards de Status */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -270,7 +251,6 @@ export function MainContent() {
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {/* CORREÇÃO: Mostra o total de pulsos de HOJE */}
             <div className="text-2xl font-bold">{totalOccurrences}</div>
             <p className="text-xs text-muted-foreground">
               Pulsos registrados hoje
@@ -298,7 +278,6 @@ export function MainContent() {
               {isFloodDanger ? "Perigo" : "Seguro"}
             </div>
             <p className="text-xs text-muted-foreground">
-              {/* CORREÇÃO: Não aplica mais o offset -3h aqui, pois 'toLocaleTimeString' já cuida disso */}
               {lastPulseTime
                 ? `Último pulso: ${lastPulseTime.toLocaleTimeString("pt-BR", {
                     timeZone: "America/Sao_Paulo",
@@ -316,7 +295,6 @@ export function MainContent() {
           </CardHeader>
           <CardContent>
             <div className="text-xl font-bold">
-              {/* CORREÇÃO: Não aplica mais o offset -3h aqui */}
               {lastPulseTime
                 ? lastPulseTime.toLocaleString("pt-BR", {
                     timeZone: "America/Sao_Paulo",
@@ -335,13 +313,12 @@ export function MainContent() {
         </Card>
       </div>
 
-      {/* Gráfico */}
       <Card className="col-span-full">
         <CardHeader>
           <CardTitle>Ocorrências de Pulsos ao Longo do Dia</CardTitle>
           <CardDescription>
             Visualização das ocorrências das 00:00 às 23:59 de hoje (Horário de
-            Brasília)
+            Brasília) • Atualiza automaticamente a cada 10s
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-4">
