@@ -19,16 +19,14 @@ import {
   Dot,
 } from "recharts";
 import { AlertTriangle, CheckCircle2, Activity } from "lucide-react";
-import { Skeleton } from "../components/ui/skeleton"; // Para o estado de loading
+import { Skeleton } from "../components/ui/skeleton";
 
-// Interface para um único pulso (vinda do seu redis.ts)
 interface Pulse {
   sensor: boolean;
   receivedAt: number;
   humanTime: string;
 }
 
-// Interface para a resposta da sua API (vinda do seu route.js)
 interface ApiResponse {
   message: string;
   pulses: Pulse[];
@@ -49,7 +47,7 @@ export function MainContent() {
    */
   const fetchData = async () => {
     try {
-      const res = await fetch("/api/pulse"); // Faz o GET para a sua rota
+      const res = await fetch("/api/pulse");
       if (!res.ok) {
         throw new Error(`Falha ao buscar dados da API: ${res.statusText}`);
       }
@@ -78,14 +76,13 @@ export function MainContent() {
         err instanceof Error ? err.message : "Um erro desconhecido ocorreu"
       );
     } finally {
-      setIsInitialLoading(false); // Só desliga após primeira carga
+      setIsInitialLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchData(); // Busca imediatamente
+    fetchData();
 
-    // Atualiza automaticamente a cada 5 segundos
     const intervalId = setInterval(fetchData, 5000);
 
     return () => clearInterval(intervalId);
@@ -147,7 +144,6 @@ export function MainContent() {
     0
   );
 
-  // Estado de Carregamento INICIAL (só primeira vez)
   if (isInitialLoading) {
     return (
       <div className="flex-1 space-y-6 p-8">
@@ -217,7 +213,6 @@ export function MainContent() {
     );
   }
 
-  // Estado de "Sem Dados"
   if (pulses.length === 0) {
     return (
       <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center p-8">
@@ -239,7 +234,6 @@ export function MainContent() {
     );
   }
 
-  // Dashboard Principal (agora atualiza automaticamente!)
   return (
     <div className="flex-1 space-y-6 p-8">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
