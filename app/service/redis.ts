@@ -69,7 +69,7 @@ export async function getLatestPulses(count = 10): Promise<PulseData[]> {
     // --- CORREÇÃO 1: Tipamos a declaração (como você sugeriu) ---
     // Dizemos ao TypeScript: "Confie em nós, isso vai ser um array de strings ou nulo"
     const rawPulses = (await redisClient.zRange("pulses:log", 0, -1, {
-      REV: false,
+      REV: true,
     })) as string[] | null;
 
     // --- CORREÇÃO 2: Verificação de Nulo/Vazio ---
