@@ -10,14 +10,14 @@ import {
 } from "../components/ui/card";
 import { ChartContainer, ChartTooltip } from "../components/ui/chart";
 import {
-  Area,
-  AreaChart,
+  Bar,
+  BarChart,
   CartesianGrid,
   XAxis,
   YAxis,
   ResponsiveContainer,
-  Dot,
 } from "recharts";
+
 import { AlertTriangle, CheckCircle2, Activity } from "lucide-react";
 import { Skeleton } from "../components/ui/skeleton";
 
@@ -319,36 +319,17 @@ export function MainContent() {
             config={{
               occurrences: {
                 label: "Ocorrências",
-                color: "hsl(var(--chart-1))",
+                color: "hsl(var(--primary))",
               },
             }}
             className="h-[400px] w-full"
           >
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart
+              <BarChart
                 data={chartData}
                 margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                barCategoryGap="20%"
               >
-                <defs>
-                  <linearGradient
-                    id="colorOccurrences"
-                    x1="0"
-                    y1="0"
-                    x2="0"
-                    y2="1"
-                  >
-                    <stop
-                      offset="5%"
-                      stopColor="hsl(var(--chart-1))"
-                      stopOpacity={0.8}
-                    />
-                    <stop
-                      offset="95%"
-                      stopColor="hsl(var(--chart-1))"
-                      stopOpacity={0.1}
-                    />
-                  </linearGradient>
-                </defs>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                 <XAxis
                   dataKey="time"
@@ -392,31 +373,13 @@ export function MainContent() {
                     return null;
                   }}
                 />
-                <Area
-                  type="stepAfter"
+                <Bar
                   dataKey="occurrences"
-                  stroke="hsl(var(--chart-1))"
-                  fillOpacity={1}
-                  fill="url(#colorOccurrences)"
-                  strokeWidth={2}
-                  dot={(props) => {
-                    const { cx, cy, payload } = props;
-                    if (payload.hasData && payload.occurrences > 0) {
-                      return (
-                        <Dot
-                          cx={cx}
-                          cy={cy}
-                          r={4}
-                          fill="hsl(var(--chart-1))"
-                          stroke="hsl(var(--background))"
-                          strokeWidth={2}
-                        />
-                      );
-                    }
-                    return <></>;
-                  }}
+                  fill="hsl(var(--primary))"
+                  radius={[4, 4, 0, 0]}
+                  barSize={20}
                 />
-              </AreaChart>
+              </BarChart>
             </ResponsiveContainer>
           </ChartContainer>
         </CardContent>
